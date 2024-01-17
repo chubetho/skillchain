@@ -1,4 +1,5 @@
-import { EscrowManager__factory, FreelancerMarketplace__factory, JobManager__factory, UserManager__factory } from '@/typechain/factories'
+import type { ChatManager, EscrowManager, FreelancerMarketplace, JobManager, ReviewManager, UserManager } from '@/typechain'
+import { ChatManager__factory, EscrowManager__factory, FreelancerMarketplace__factory, JobManager__factory, ReviewManager__factory, UserManager__factory } from '@/typechain/factories'
 import type { User } from '@/types'
 import { shortenAddr } from '@/utils'
 import type { JsonRpcSigner } from 'ethers'
@@ -41,24 +42,52 @@ export const useStore = defineStore('metamask', () => {
     return signer.value
   }
 
+  let marketFactory: FreelancerMarketplace
   async function getMarketFactory() {
+    if (marketFactory)
+      return marketFactory
     const address = import.meta.env.VITE_MARKET_ADDRESS
     return FreelancerMarketplace__factory.connect(address, await getSigner())
   }
 
+  let jobFactory: JobManager
   async function getJobFactory() {
+    if (jobFactory)
+      return jobFactory
     const address = import.meta.env.VITE_JOB_ADDRESS
     return JobManager__factory.connect(address, await getSigner())
   }
 
+  let userFactory: UserManager
   async function getUserFactory() {
+    if (userFactory)
+      return userFactory
     const address = import.meta.env.VITE_USER_ADDRESS
     return UserManager__factory.connect(address, await getSigner())
   }
 
+  let escrowFactory: EscrowManager
   async function getEscrowFactory() {
+    if (escrowFactory)
+      return escrowFactory
     const address = import.meta.env.VITE_ESCROW_ADDRESS
     return EscrowManager__factory.connect(address, await getSigner())
+  }
+
+  let chatFactory: ChatManager
+  async function getChatFactory() {
+    if (chatFactory)
+      return chatFactory
+    const address = import.meta.env.VITE_CHAT_ADDRESS
+    return ChatManager__factory.connect(address, await getSigner())
+  }
+
+  let reviewFactory: ReviewManager
+  async function getReviewFactory() {
+    if (reviewFactory)
+      return reviewFactory
+    const address = import.meta.env.VITE_REVIEW_ADDRESS
+    return ReviewManager__factory.connect(address, await getSigner())
   }
 
   return {
@@ -68,6 +97,8 @@ export const useStore = defineStore('metamask', () => {
     getJobFactory,
     getUserFactory,
     getEscrowFactory,
+    getChatFactory,
+    getReviewFactory,
 
     isConnected,
     address,

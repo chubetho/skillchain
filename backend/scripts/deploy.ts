@@ -15,14 +15,16 @@ async function main() {
   const job = await ethers.deployContract('JobManager', [market.target], { signer: admin })
   const user = await ethers.deployContract('UserManager', [market.target], { signer: admin })
   const escrow = await ethers.deployContract('EscrowManager', [market.target], { signer: admin })
-  const chat = await ethers.deployContract('ChatManager', [], { signer: admin })
-  const review = await ethers.deployContract('ReviewManager', [], { signer: admin })
+  const chat = await ethers.deployContract('ChatManager', [market.target], { signer: admin })
+  const review = await ethers.deployContract('ReviewManager', [market.target], { signer: admin })
 
   if (
     market.target !== '0x73511669fd4dE447feD18BB79bAFeAC93aB7F31f'
     || job.target !== '0xB581C9264f59BF0289fA76D61B2D0746dCE3C30D'
     || user.target !== '0xC469e7aE4aD962c30c7111dc580B4adbc7E914DD'
     || escrow.target !== '0x43ca3D2C94be00692D207C6A1e60D8B325c6f12f'
+    || chat.target !== '0xb09da8a5B236fE0295A345035287e80bb0008290'
+    || review.target !== '0x5095d3313C76E8d29163e40a0223A5816a8037D8'
   )
     throw new Error ('Wrong deployed addresses! Restart node and try again')
 
@@ -41,7 +43,7 @@ async function main() {
     escrow.setJobManager(job.target),
   ])
 
-  const isDev = true
+  const isDev = false
   if (isDev) {
     const useAccount = async (s: HardhatEthersSigner, username: string) => {
       const _user = user.connect(s) as Contract
