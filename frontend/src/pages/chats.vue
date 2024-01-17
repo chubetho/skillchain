@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { EMPTY_ADDRESS } from '@/constants'
-import { fetchEscrow, fetchUser } from '@/lib/fetch'
-import type { Escrow } from '@/types'
+import { fetchEscrow, fetchMessages, fetchUser } from '@/lib/fetch'
+import type { Escrow, Message } from '@/types'
 import { compareAddress, shortenAddr } from '@/utils'
 import { Forward, MessageCircleOff } from 'lucide-vue-next'
 
@@ -9,16 +9,26 @@ type CustomEscrow = Escrow & { buyerUsername: string, sellerUsername: string }
 
 const store = useStore()
 const escrowFactory = await store.getEscrowFactory()
-// const chatFactory = await store.getChatFactory()
-// onMounted(async () =>
-//   console.log(await chatFactory.getAllChannelMessages(0)),
-// )
+const chatFactory = await store.getChatFactory()
 
 const escrowsAsBuyer = shallowRef<CustomEscrow[]>([])
 const escrowsAsSeller = shallowRef<CustomEscrow[]>([])
-const isNoChat = computed(() => !escrowsAsBuyer.value.length && !escrowsAsSeller.value.length)
-
+const isNoReceiver = computed(() => !escrowsAsBuyer.value.length && !escrowsAsSeller.value.length)
+const messages = shallowRef<Message[]>([])
+const isNoMessage = computed(() => !messages.value.length)
 const receiver = shallowRef({ address: EMPTY_ADDRESS, username: 'n.a.' })
+const currentEscrow = shallowRef<CustomEscrow>({
+  buyer: EMPTY_ADDRESS,
+  buyerUsername: 'n.a.',
+  escrowId: -1,
+  isDone: false,
+  jobId: -1,
+  money: 0,
+  price: 0,
+  seller: EMPTY_ADDRESS,
+  sellerUsername: 'n.a.',
+  started: false,
+})
 
 async function fetch() {
   const _escrowsAsBuyer: CustomEscrow[] = []
@@ -45,19 +55,42 @@ async function fetch() {
 
   escrowsAsBuyer.value = _escrowsAsBuyer
   escrowsAsSeller.value = _escrowsAsSeller
+
+  _escrowsAsBuyer.length && await handleChangeReceiver(_escrowsAsBuyer[0])
 }
 
 onMounted(() => {
   fetch()
 })
 
-async function handleSendOffer() {
-  await escrowFactory.sendRequest(0)
+async function handleChangeReceiver(e: CustomEscrow) {
+  if (currentEscrow.value.escrowId === e.escrowId)
+    return
+
+  currentEscrow.value = e
+  receiver.value = {
+    address: e.seller,
+    username: e.sellerUsername,
+  }
+
+  messages.value = await fetchMessages(e.escrowId)
 }
 
-const message = ref('')
-function handleSend() {
-  console.log(message.value)
+async function handleSendOffer() {
+  isNoMessage.value && await chatFactory.openChannel(currentEscrow.value.escrowId)
+  await escrowFactory.sendRequest(currentEscrow.value.escrowId)
+  await chatFactory.sendMessage(currentEscrow.value.escrowId, 'start request')
+}
+
+const newMessage = ref('')
+async function handleSend() {
+  if (!newMessage.value)
+    return
+
+  const res = await chatFactory.sendMessage(currentEscrow.value.escrowId, newMessage.value)
+  const receipt = await res.wait()
+  if (receipt?.status === 1)
+    messages.value = await fetchMessages(currentEscrow.value.escrowId)
 }
 </script>
 
@@ -68,18 +101,18 @@ function handleSend() {
         <ScrollArea class="h-[800px]">
           <ul v-if="escrowsAsBuyer.length" class="space-y-3">
             <li
-              v-for="escrow in escrowsAsBuyer"
-              :key="escrow.escrowId"
+              v-for="e in escrowsAsBuyer"
+              :key="e.escrowId"
               class="cursor-pointer"
-              @click="receiver = { address: escrow.seller, username: escrow.sellerUsername }"
+              @click="handleChangeReceiver(e)"
             >
-              <div class="border rounded-md px-2 py-4 hover:border-primary transition-colors" :class="{ 'border-primary': receiver.address === escrow.seller }">
+              <div class="border rounded-md px-2 py-4 hover:border-primary transition-colors" :class="{ 'border-primary': receiver.address === e.seller }">
                 <div class="flex items-center">
-                  <Avatar class="w-[20%]" :size="45" :address="escrow.seller" />
+                  <Avatar class="w-[20%]" :size="45" :address="e.seller" />
                   <div>
                     <div class="space-x-2">
-                      <span class="font-medium">{{ escrow.sellerUsername }}</span>
-                      <span class="text-muted-foreground">{{ shortenAddr(escrow.seller) }}</span>
+                      <span class="font-medium">{{ e.sellerUsername }}</span>
+                      <span class="text-muted-foreground">{{ shortenAddr(e.seller) }}</span>
                     </div>
                     <p>You: Lorem ipsum dolor sit amet.</p>
                   </div>
@@ -88,29 +121,7 @@ function handleSend() {
             </li>
           </ul>
 
-          <ul v-if="escrowsAsSeller.length" class="space-y-3">
-            <li
-              v-for="escrow in escrowsAsSeller"
-              :key="escrow.escrowId"
-              class="cursor-pointer"
-              @click="receiver = { address: escrow.seller, username: escrow.sellerUsername }"
-            >
-              <div class="border rounded-md px-2 py-4 hover:border-primary transition-colors" :class="{ 'border-primary': receiver.address === escrow.seller }">
-                <div class="flex items-center">
-                  <Avatar class="w-[20%]" :size="45" :address="escrow.seller" />
-                  <div>
-                    <div class="space-x-2">
-                      <span class="font-medium">{{ escrow.sellerUsername }}</span>
-                      <span class="text-muted-foreground">{{ shortenAddr(escrow.seller) }}</span>
-                    </div>
-                    <p>You: Lorem ipsum dolor sit amet.</p>
-                  </div>
-                </div>
-              </div>
-            </li>
-          </ul>
-
-          <div v-if="isNoChat" class="pt-6 text-center">
+          <div v-if="isNoReceiver" class="pt-6 text-center">
             <p class="text-muted-foreground">
               there is no chat
             </p>
@@ -127,7 +138,7 @@ function handleSend() {
           </div>
         </div>
 
-        <div v-if="isNoChat" class="h-full flex-center">
+        <div v-if="isNoReceiver" class="h-full flex-center">
           <MessageCircleOff
             :size="100"
             stroke-width="0.75"
@@ -136,25 +147,35 @@ function handleSend() {
         </div>
 
         <ScrollArea v-else class="grow p-3 pt-5">
-          <div class="flex flex-col gap-3 h-full">
-            <ChatBox>
-              {{ receiver.username }} hat accepted your job request. send an offer now.
-            </ChatBox>
+          <div class="flex flex-col gap-1.5 h-full">
+            <template v-if="isNoMessage">
+              <ChatBox>
+                {{ receiver.username }} hat accepted your job request, send an offer now
+              </ChatBox>
+              <ChatBox parent-class="">
+                <Button size="sm" @click="handleSendOffer">
+                  send
+                </Button>
+              </ChatBox>
+            </template>
 
-            <ChatBox>
-              <Button @click="handleSendOffer">
-                send
-              </Button>
-            </ChatBox>
+            <template v-else>
+              <ChatBox
+                v-for="{ sender, timestamp, content } in messages" :key="timestamp"
+                :dir="compareAddress(sender, store.address) ? 'right' : 'left'"
+              >
+                {{ content }}
+              </ChatBox>
+            </template>
           </div>
         </ScrollArea>
 
         <div class="mt-auto px-3 pb-4">
           <form class="flex items-center gap-3" @submit.prevent="handleSend">
             <div class="grow">
-              <Input v-model="message" placeholder="type something here..." />
+              <Input v-model="newMessage" placeholder="type something here..." />
             </div>
-            <Button size="icon" :disabled="isNoChat">
+            <Button size="icon" :disabled="isNoReceiver || isNoMessage">
               <Forward :size="20" />
             </Button>
           </form>

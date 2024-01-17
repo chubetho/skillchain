@@ -1,5 +1,5 @@
 import { EMPTY_ADDRESS } from '@/constants'
-import type { Escrow, EscrowRequest, Job, User } from '@/types'
+import type { Escrow, EscrowRequest, Job, Message, User } from '@/types'
 
 export async function fetchEscrow(id: number): Promise<Escrow | undefined> {
   const store = useStore()
@@ -61,4 +61,16 @@ export async function fetchRequest(id: number): Promise<EscrowRequest> {
     status: Number(request[2]),
     isStartRequest: request[3],
   }
+}
+
+export async function fetchMessages(id: number): Promise<Message[]> {
+  const store = useStore()
+  const factory = await store.getChatFactory()
+  const ms = await factory.getAllChannelMessages(id)
+  return ms.map(m => ({
+    sender: m[0],
+    receiver: m[1],
+    timestamp: Number(m[2]),
+    content: m[3],
+  }))
 }

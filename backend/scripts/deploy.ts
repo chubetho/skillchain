@@ -42,7 +42,6 @@ async function main() {
 
     escrow.setUserManager(user.target),
     escrow.setJobManager(job.target),
-    escrow.setChatManager(chat.target),
 
     chat.setJobManager(job.target),
     chat.setEscrowManager(escrow.target),
@@ -62,32 +61,13 @@ async function main() {
     }
 
     await user.registerUser('admin')
-    for (const { title, description, price, tags } of jobs.slice(0, 3))
+    for (const { title, description, price, tags } of jobs)
       await job.addJob(title, description, price, tags)
 
     const account0 = await useAccount(signers[0], 'acc0')
-    for (const { title, description, price, tags } of jobs.slice(3, 6))
-      await account0.job.addJob(title, description, price, tags)
-
-    const account1 = await useAccount(signers[1], 'acc1')
-    for (const { title, description, price, tags } of jobs.slice(6, 9))
-      await account1.job.addJob(title, description, price, tags)
-
-    const account2 = await useAccount(signers[2], 'acc2')
-    for (const { title, description, price, tags } of jobs.slice(9, 10))
-      await account2.job.addJob(title, description, price, tags)
-
-    await job.sendBuyRequest(3, ' ')
-    await job.sendBuyRequest(6, ' ')
-    await job.sendBuyRequest(9, ' ')
-
-    await account0.job.sendBuyRequest(0, ' ')
-    await account0.job.sendBuyRequest(1, ' ')
-    await account0.job.sendBuyRequest(2, ' ')
-
-    await account1.job.sendBuyRequest(4, ' ')
-    await account1.job.sendBuyRequest(5, ' ')
-    await account1.job.sendBuyRequest(9, ' ')
+    await account0.job.sendBuyRequest(0, 'message')
+    await account0.job.sendBuyRequest(1, 'message')
+    await account0.job.sendBuyRequest(2, 'message')
   }
 }
 

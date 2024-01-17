@@ -37,6 +37,13 @@ export interface EscrowRequest {
   isStartRequest: boolean
 }
 
+export interface Message {
+  sender: string
+  receiver: string
+  timestamp: number
+  content: string
+}
+
 declare global {
   interface Window {
     ethereum: Eip1193Provider &

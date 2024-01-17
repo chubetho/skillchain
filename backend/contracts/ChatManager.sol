@@ -120,6 +120,12 @@ contract ChatManager {
 
   // Open a new communication channel for a given escrow
   function openChannel(uint _escrowId) public isEscrowEntity(_escrowId) {
+    require(
+      channels[_escrowId].participantSeller == address(0) &&
+        channels[_escrowId].participantBuyer == address(0),
+      "Channel is already opened!"
+    );
+
     // Destruct escrow from getEscrow from EscrowManager to get the addresses of buyer and seller
     (, , address buyer, address seller, , , , ) = escrowManager.getEscrow(
       _escrowId
