@@ -39,11 +39,17 @@ async function main() {
   await Promise.all([
     job.setUserManager(user.target),
     job.setEscrowManager(escrow.target),
+
     escrow.setUserManager(user.target),
     escrow.setJobManager(job.target),
+    escrow.setChatManager(chat.target),
+
+    chat.setJobManager(job.target),
+    chat.setEscrowManager(escrow.target),
+    chat.setUserManager(user.target),
   ])
 
-  const isDev = false
+  const isDev = true
   if (isDev) {
     const useAccount = async (s: HardhatEthersSigner, username: string) => {
       const _user = user.connect(s) as Contract

@@ -4,6 +4,7 @@ pragma solidity >=0.7.0 <0.9.0;
 import "./FreelancerMarketplace.sol";
 import "./UserManager.sol";
 import "./JobManager.sol";
+import "./ChatManager.sol";
 
 contract EscrowManager {
   mapping(uint256 => Escrow) public escrows;
@@ -11,6 +12,7 @@ contract EscrowManager {
   FreelancerMarketplace freelancerMarketplace;
   JobManager jobManager;
   UserManager userManager;
+  ChatManager chatManager;
 
   struct Escrow {
     uint256 jobId;
@@ -81,6 +83,14 @@ contract EscrowManager {
       "Only the Admin can add Managers"
     );
     userManager = UserManager(_address);
+  }
+
+  function setChatManager(address _address) external {
+    require(
+      freelancerMarketplace.onlyAdmin(),
+      "Only the Admin can add Managers"
+    );
+    chatManager = ChatManager(_address);
   }
 
   //*********************************************************************
@@ -155,6 +165,9 @@ contract EscrowManager {
 
     userManager.addEscrowId(escrowCount, buyer);
     userManager.addEscrowId(escrowCount, seller);
+
+    chatManager.openChannel(escrowCount);
+    chatManager.sendMessage(escrowCount, "something");
 
     escrowCount++;
 

@@ -9,6 +9,10 @@ type CustomEscrow = Escrow & { buyerUsername: string, sellerUsername: string }
 
 const store = useStore()
 const escrowFactory = await store.getEscrowFactory()
+// const chatFactory = await store.getChatFactory()
+// onMounted(async () =>
+//   console.log(await chatFactory.getAllChannelMessages(0)),
+// )
 
 const escrowsAsBuyer = shallowRef<CustomEscrow[]>([])
 const escrowsAsSeller = shallowRef<CustomEscrow[]>([])
