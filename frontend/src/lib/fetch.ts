@@ -50,6 +50,21 @@ export async function fetchAllJobs(): Promise<Job[]> {
   }))
 }
 
+export async function fetchJob(id: number): Promise<Job> {
+  const store = useStore()
+  const factory = await store.getJobFactory()
+  const j = await factory.getJob(id)
+  return {
+    owner: j[0],
+    id: Number(j[1]),
+    title: j[2],
+    description: j[3],
+    price: Number(j[4]),
+    inProcess: j[5],
+    tags: j[6],
+  }
+}
+
 export async function fetchRequest(id: number): Promise<EscrowRequest> {
   const store = useStore()
   const factory = await store.getEscrowFactory()

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { EMPTY_ADDRESS } from '@/constants'
-import { fetchEscrow, fetchMessages, fetchUser } from '@/lib/fetch'
-import type { Escrow, Message } from '@/types'
+import { fetchEscrow, fetchJob, fetchMessages, fetchUser } from '@/lib/fetch'
+import type { Escrow, Job, Message } from '@/types'
 import { compareAddress, shortenAddr } from '@/utils'
 import { Forward, MessageCircleOff } from 'lucide-vue-next'
 
-type CustomEscrow = Escrow & { buyerUsername: string, sellerUsername: string }
+type CustomEscrow = Escrow & { buyerUsername: string, sellerUsername: string, job: Job }
 
 const store = useStore()
 const escrowFactory = await store.getEscrowFactory()
@@ -16,7 +16,6 @@ const escrowsAsSeller = shallowRef<CustomEscrow[]>([])
 const isNoReceiver = computed(() => !escrowsAsBuyer.value.length && !escrowsAsSeller.value.length)
 const messages = shallowRef<Message[]>([])
 const isNoMessage = computed(() => !messages.value.length)
-const receiver = shallowRef({ address: EMPTY_ADDRESS, username: 'n.a.' })
 const currentEscrow = shallowRef<CustomEscrow>({
   buyer: EMPTY_ADDRESS,
   buyerUsername: 'n.a.',
@@ -28,7 +27,10 @@ const currentEscrow = shallowRef<CustomEscrow>({
   seller: EMPTY_ADDRESS,
   sellerUsername: 'n.a.',
   started: false,
+  job: { description: '', id: -1, inProcess: false, owner: EMPTY_ADDRESS, price: 0, tags: [], title: '' },
 })
+const q = ref('')
+const offerPrice = ref(currentEscrow.value.job.price)
 
 async function fetch() {
   const _escrowsAsBuyer: CustomEscrow[] = []
@@ -41,10 +43,12 @@ async function fetch() {
 
     const buyer = await fetchUser(e.buyer)
     const seller = await fetchUser(e.seller)
+    const job = await fetchJob(e.jobId)
     const escrow = {
       ...e,
       buyerUsername: buyer.userName,
       sellerUsername: seller.userName,
+      job,
     }
 
     if (compareAddress(buyer.owner, store.address))
@@ -68,11 +72,7 @@ async function handleChangeReceiver(e: CustomEscrow) {
     return
 
   currentEscrow.value = e
-  receiver.value = {
-    address: e.seller,
-    username: e.sellerUsername,
-  }
-
+  offerPrice.value = e.job.price
   messages.value = await fetchMessages(e.escrowId)
 }
 
@@ -97,8 +97,9 @@ async function handleSend() {
 <template>
   <div class="py-10">
     <div class="grid grid-cols-3 gap-5">
-      <div class="col-span-1 border rounded-md">
-        <ScrollArea class="h-[800px]">
+      <div class="col-span-1 space-y-3" :class="escrowsAsBuyer.length ? 'border-none' : 'border rounded-md'">
+        <BaseSearch v-model="q" placeholder="search for chats" />
+        <ScrollArea class="h-[600px]">
           <ul v-if="escrowsAsBuyer.length" class="space-y-3">
             <li
               v-for="e in escrowsAsBuyer"
@@ -106,15 +107,22 @@ async function handleSend() {
               class="cursor-pointer"
               @click="handleChangeReceiver(e)"
             >
-              <div class="border rounded-md px-2 py-4 hover:border-primary transition-colors" :class="{ 'border-primary': receiver.address === e.seller }">
-                <div class="flex items-center">
-                  <Avatar class="w-[20%]" :size="45" :address="e.seller" />
-                  <div>
-                    <div class="space-x-2">
-                      <span class="font-medium">{{ e.sellerUsername }}</span>
-                      <span class="text-muted-foreground">{{ shortenAddr(e.seller) }}</span>
-                    </div>
-                    <p>You: Lorem ipsum dolor sit amet.</p>
+              <div class="border rounded-md px-4 py-3 hover:border-primary transition-colors" :class="{ 'border-primary': e.escrowId === currentEscrow.escrowId }">
+                <div class="space-y-1">
+                  <div class="flex items-center justify-between w-">
+                    <p class="font-medium">
+                      #{{ e.jobId }} {{ e.job.title }}
+                    </p>
+                    <JobPrice>
+                      <template #parent>
+                        <span class="font-normal mr-1">{{ e.job.price }}</span>
+                      </template>
+                    </JobPrice>
+                  </div>
+
+                  <div class="space-x-1">
+                    <span>{{ e.sellerUsername }}</span>
+                    <span class="text-muted-foreground">{{ shortenAddr(e.seller) }}</span>
                   </div>
                 </div>
               </div>
@@ -130,11 +138,11 @@ async function handleSend() {
       </div>
 
       <div class="col-span-2 flex flex-col border rounded-md">
-        <div class="border-b flex items-center gap-3 px-3 py-4">
-          <Avatar :address="receiver.address" :size="35" />
+        <div class="border-b flex items-center gap-3 p-3">
+          <Avatar :address="currentEscrow.seller" :size="35" />
           <div class="space-x-2">
-            <span class="font-medium">{{ receiver.username }}</span>
-            <span class="text-muted-foreground tracking-wide">{{ receiver.address }}</span>
+            <span class="font-medium">{{ currentEscrow.sellerUsername }}</span>
+            <span class="text-muted-foreground">{{ currentEscrow.seller }}</span>
           </div>
         </div>
 
@@ -146,14 +154,18 @@ async function handleSend() {
           />
         </div>
 
-        <ScrollArea v-else class="grow p-3 pt-5">
-          <div class="flex flex-col gap-1.5 h-full">
+        <ScrollArea v-else class="grow p-3">
+          <div class="flex flex-col gap-2 h-full">
             <template v-if="isNoMessage">
               <ChatBox>
-                {{ receiver.username }} hat accepted your job request, send an offer now
+                {{ currentEscrow.sellerUsername }} hat accepted your job request!
+              </ChatBox>
+              <ChatBox>
+                send an offer now to start and contact with them.
               </ChatBox>
               <ChatBox parent-class="">
-                <Button size="sm" @click="handleSendOffer">
+                <Input v-model="offerPrice" type="number" :min="currentEscrow.job.price" class="w-[100px] inline rounded-br-none rounded-tr-none" />
+                <Button size="sm" class="rounded-bl-none rounded-tl-none" @click="handleSendOffer">
                   send
                 </Button>
               </ChatBox>
@@ -170,7 +182,7 @@ async function handleSend() {
           </div>
         </ScrollArea>
 
-        <div class="mt-auto px-3 pb-4">
+        <div class="mt-auto p-3">
           <form class="flex items-center gap-3" @submit.prevent="handleSend">
             <div class="grow">
               <Input v-model="newMessage" placeholder="type something here..." />

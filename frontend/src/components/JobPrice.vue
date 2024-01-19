@@ -1,10 +1,12 @@
 <template>
   <div class="flex items-center">
-    <span class="font-bold mr-1">
+    <slot name="parent">
+      <span class="mr-1 font-bold">
 
-      eth
-      <span class="tabular-nums"><slot /></span>
-    </span>
+        eth
+        <span class="tabular-nums"><slot /></span>
+      </span>
+    </slot>
     <Etherum class="fill-primary -mt-0.5" />
   </div>
 </template>

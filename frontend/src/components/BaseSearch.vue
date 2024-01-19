@@ -2,7 +2,7 @@
 import { Search } from 'lucide-vue-next'
 
 const { placeholder = 'search for ...' } = defineProps<{
-  placeholder: string
+  placeholder?: string
 }>()
 const q = defineModel({ default: '' })
 </script>

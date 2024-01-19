@@ -62,7 +62,7 @@ async function handleAcceptRequest(jobId: number, requestId: number) {
   const response = await jobFactory.acceptBuyRequest(jobId, requestId)
   const receipt = await response.wait()
   if (receipt?.status === 1)
-    window.location.reload()
+    await fetch()
 }
 </script>
 

@@ -112,6 +112,20 @@ contract JobManager {
     return jobs[jobId].owner;
   }
 
+  function getJob(uint256 id) external view returns (SimplifiedJob memory) {
+    Job storage job = jobs[id];
+    return
+      SimplifiedJob({
+        owner: job.owner,
+        jobId: job.jobId,
+        title: job.title,
+        description: job.description,
+        price: job.price,
+        inProgress: job.inProgress,
+        tags: job.tags
+      });
+  }
+
   function getAllJobs() external view returns (SimplifiedJob[] memory) {
     SimplifiedJob[] memory allJobs = new SimplifiedJob[](jobCount);
 
