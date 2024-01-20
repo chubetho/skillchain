@@ -24,10 +24,10 @@ jobs:
         run: pnpm install
 
       - name: Format BE
-        run: npx prettier --write --plugin=prettier-plugin-solidity 'backend/contracts/**/*.sol'
+        run: npx prettier --list-different --plugin=prettier-plugin-solidity 'backend/contracts/**/*.sol'
 
       - name: Lint FE
-        run: npx eslint --fix .
+        run: npx eslint .
 
       - name: Build BE
         run: pnpm run build:be
