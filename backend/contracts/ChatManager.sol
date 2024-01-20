@@ -184,7 +184,7 @@ contract ChatManager {
     channelMessages[_escrowId][channel.messageCount] = Message({
       sender: msg.sender,
       receiver: receiver,
-      timestamp: block.timestamp,
+      timestamp: block.timestamp * 1000,
       content: _content
     });
 

@@ -10,6 +10,7 @@ declare module 'vue' {
     Avatar: typeof import('./src/components/Avatar.vue')['default']
     Badge: typeof import('./src/components/ui/badge/Badge.vue')['default']
     BaseSearch: typeof import('./src/components/BaseSearch.vue')['default']
+    BaseUsername: typeof import('./src/components/BaseUsername.vue')['default']
     Button: typeof import('./src/components/ui/button/Button.vue')['default']
     Card: typeof import('./src/components/ui/card/Card.vue')['default']
     CardContent: typeof import('./src/components/ui/card/CardContent.vue')['default']

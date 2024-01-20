@@ -29,7 +29,7 @@ Install the Metamask browser extension from [here](https://metamask.io/download.
 
 
 ### Development
-Navigate to the `/backend` directory and run these 2 commands in 2 different terminals
+Run these 2 commands in 2 different terminals
 ```
 # run node server
 
@@ -40,7 +40,6 @@ pnpm node
 
 pnpm deploy:local
 ```
-
 
 Make sure backend is still running. This is how to setup Metamask
 1. Add a custom network with the following details:
@@ -111,7 +110,7 @@ Account #19: 0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199 (10000 ETH)
 Private Key: 0xdf57089febbacf7ba0bc227dafbffa9fc08a93fdc68e1e42411a14efcf23656e
 ```
 
-When backend is available and Metamask is setup, navigate to the `/frontend` directory and run:
+When backend is available and Metamask is setup, run this command in different terminal:
 ```
 pnpm dev
 ```

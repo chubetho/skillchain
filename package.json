@@ -5,6 +5,8 @@
   "packageManager": "pnpm@8.14.1",
   "scripts": {
     "dev": "pnpm --filter=./frontend dev",
+    "node": "pnpm --filter=./backend node",
+    "deploy:local": "pnpm --filter=./backend deploy:local",
     "build": "pnpm --filter=./frontend build",
     "build:gh": "pnpm --filter=./frontend build --base=/skillchain/",
     "deploy:gh": "git subtree split --prefix frontend/dist -b gh-pages && git push origin gh-pages:gh-pages --force && git branch -D gh-pages",

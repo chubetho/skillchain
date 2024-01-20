@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useToast } from '@/components/ui/toast'
 import { EMPTY_ADDRESS } from '@/constants'
 import { fetchEscrow, fetchJob, fetchMessages, fetchUser } from '@/lib/fetch'
 import type { Escrow, Job, Message } from '@/types'
@@ -13,9 +14,6 @@ const chatFactory = await store.getChatFactory()
 
 const escrowsAsBuyer = shallowRef<CustomEscrow[]>([])
 const escrowsAsSeller = shallowRef<CustomEscrow[]>([])
-const isNoReceiver = computed(() => !escrowsAsBuyer.value.length && !escrowsAsSeller.value.length)
-const messages = shallowRef<Message[]>([])
-const isNoMessage = computed(() => !messages.value.length)
 const currentEscrow = shallowRef<CustomEscrow>({
   buyer: EMPTY_ADDRESS,
   buyerUsername: 'n.a.',
@@ -29,9 +27,18 @@ const currentEscrow = shallowRef<CustomEscrow>({
   started: false,
   job: { description: '', id: -1, inProcess: false, owner: EMPTY_ADDRESS, price: 0, tags: [], title: '' },
 })
+const isNoReceiver = computed(() =>
+  (!escrowsAsBuyer.value.length && !escrowsAsSeller.value.length)
+  || currentEscrow.value.buyer === EMPTY_ADDRESS
+  || currentEscrow.value.seller === EMPTY_ADDRESS)
+const messages = shallowRef<Message[]>([])
+const isNoMessage = computed(() => !messages.value.length)
 const role = ref<'buyer' | 'seller'>('buyer')
-const q = ref('')
+const s = ref('')
 const offerPrice = ref(currentEscrow.value.job.price)
+const router = useRouter()
+const route = useRoute()
+const { toast } = useToast()
 
 async function fetch() {
   const _escrowsAsBuyer: CustomEscrow[] = []
@@ -61,20 +68,35 @@ async function fetch() {
   escrowsAsBuyer.value = _escrowsAsBuyer
   escrowsAsSeller.value = _escrowsAsSeller
 
+  const queryId = route.query.id
+  if (queryId) {
+    const parsed = Number.parseInt(queryId.toString())
+
+    const inBuyer = _escrowsAsBuyer.find(e => e.escrowId === parsed)
+    if (inBuyer) {
+      await handleChangeEscrow(inBuyer)
+      return
+    }
+    const inSeller = _escrowsAsSeller.find(e => e.escrowId === parsed)
+    if (inSeller) {
+      await handleChangeEscrow(inSeller)
+      return
+    }
+  }
+
   if (_escrowsAsBuyer.length)
-    await handleChangeReceiver(_escrowsAsBuyer[0])
+    await handleChangeEscrow(_escrowsAsBuyer[0])
   else if (_escrowsAsSeller.length)
-    await handleChangeReceiver(_escrowsAsSeller[0])
+    await handleChangeEscrow(_escrowsAsSeller[0])
 }
 
-onMounted(() => {
-  fetch()
-})
+onMounted(fetch)
 
-async function handleChangeReceiver(e: CustomEscrow) {
+async function handleChangeEscrow(e: CustomEscrow) {
   if (currentEscrow.value.escrowId === e.escrowId)
     return
 
+  router.push(`/chats?id=${e.escrowId}`)
   role.value = e.buyerUsername === store.user.userName ? 'buyer' : 'seller'
   currentEscrow.value = e
   offerPrice.value = e.job.price
@@ -82,9 +104,22 @@ async function handleChangeReceiver(e: CustomEscrow) {
 }
 
 async function handleSendOffer() {
-  isNoMessage.value && await chatFactory.openChannel(currentEscrow.value.escrowId)
-  await escrowFactory.sendRequest(currentEscrow.value.escrowId)
-  await chatFactory.sendMessage(currentEscrow.value.escrowId, 'start request')
+  const openResponse = await chatFactory.openChannel(currentEscrow.value.escrowId)
+  const openReceipt = await openResponse.wait()
+  if (openReceipt?.status === 1)
+    toast({ title: 'step 1/3', description: 'chat channel for you and they has been opened' })
+
+  const sendRequestResponse = await escrowFactory.sendRequest(currentEscrow.value.escrowId)
+  const sendRequestReceipt = await sendRequestResponse.wait()
+  if (sendRequestReceipt?.status === 1)
+    toast({ title: 'step 2/3', description: 'start request has been sent' })
+
+  const sendMessageResponse = await chatFactory.sendMessage(currentEscrow.value.escrowId, 'start request')
+  const sendMessageReceipt = await sendMessageResponse.wait()
+  if (sendMessageReceipt?.status === 1) {
+    toast({ title: 'step 3/3', description: 'now they will see you message' })
+    messages.value = await fetchMessages(currentEscrow.value.escrowId)
+  }
 }
 
 const newMessage = ref('')
@@ -104,15 +139,21 @@ async function handleSend() {
 <template>
   <div class="py-10">
     <div class="grid grid-cols-3 gap-5">
-      <div class="col-span-1 space-y-3" :class="escrowsAsBuyer.length ? 'border-none' : 'border rounded-md'">
-        <BaseSearch v-model="q" disabled placeholder="search for chats" />
+      <div class="col-span-1" :class="escrowsAsBuyer.length ? 'border-none' : 'border rounded-md'">
+        <BaseSearch v-model="s" disabled placeholder="search for chats" />
+
+        <div class="relative my-6">
+          <Separator />
+          <span class="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 px-3 bg-background">to you</span>
+        </div>
+
         <ScrollArea class="h-[600px]">
           <ul v-if="escrowsAsBuyer.length" class="space-y-3">
             <li
               v-for="e in escrowsAsBuyer"
               :key="e.escrowId"
               class="cursor-pointer"
-              @click="handleChangeReceiver(e)"
+              @click="handleChangeEscrow(e)"
             >
               <div class="border rounded-md px-4 py-3 hover:border-primary transition-colors" :class="{ 'border-primary': e.escrowId === currentEscrow.escrowId }">
                 <div class="space-y-1">
@@ -136,12 +177,17 @@ async function handleSend() {
             </li>
           </ul>
 
-          <ul v-if="escrowsAsSeller.length" class="space-y-3 mt-3">
+          <div class="relative my-6">
+            <Separator />
+            <span class="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 px-3 bg-background">from you</span>
+          </div>
+
+          <ul v-if="escrowsAsSeller.length" class="space-y-3">
             <li
               v-for="e in escrowsAsSeller"
               :key="e.escrowId"
               class="cursor-pointer"
-              @click="handleChangeReceiver(e)"
+              @click="handleChangeEscrow(e)"
             >
               <div class="border rounded-md px-4 py-3 hover:border-primary transition-colors" :class="{ 'border-primary': e.escrowId === currentEscrow.escrowId }">
                 <div class="space-y-1">
@@ -204,7 +250,8 @@ async function handleSend() {
             <template v-if="isNoMessage">
               <template v-if="role === 'buyer'">
                 <ChatBox>
-                  {{ currentEscrow.sellerUsername }} hat accepted your job request!
+                  <BaseUsername>{{ currentEscrow.sellerUsername }}</BaseUsername>
+                  hat accepted your job request!
                 </ChatBox>
                 <ChatBox>
                   send an offer now to start and contact with them.
@@ -217,10 +264,10 @@ async function handleSend() {
                 </ChatBox>
               </template>
               <template v-else>
-                <ChatBox>
-                  you hat already sent job request to {{ currentEscrow.buyerUsername }}.
+                <ChatBox dir="right">
+                  you hat already sent job request to <BaseUsername>{{ currentEscrow.buyerUsername }}</BaseUsername>.
                 </ChatBox>
-                <ChatBox>
+                <ChatBox dir="right">
                   wait for them to accept!
                 </ChatBox>
               </template>
