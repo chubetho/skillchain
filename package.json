@@ -9,7 +9,7 @@
 
     "node": "pnpm --filter=./backend node",
     "deploy:local": "pnpm --filter=./backend deploy:local",
-    "build:be": "pnpm --filter=./backend compile",
+    "build:be": "pnpm --filter=./backend build",
 
     "docs:dev": "pnpm --filter=./docs dev",
 
