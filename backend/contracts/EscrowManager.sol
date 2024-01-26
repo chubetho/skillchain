@@ -209,8 +209,8 @@ contract EscrowManager {
         msg.sender == escrow.buyer,
         "Only the Buyer can send the Start Request"
       );
-      require(msg.value < escrow.price, "invalid Funds");
-      escrows[escrowId].money += msg.value;
+      require(msg.value == escrow.price, "invalid Funds");
+      escrow.money += msg.value;
       starter = true;
     } else {
       require(
@@ -277,25 +277,28 @@ contract EscrowManager {
   function updateEscrow(uint escrowId, uint newAmount, bool accepted) external {
     // Ensure that the escrow is not marked as done
     require(!escrows[escrowId].isDone, "Escrow is already completed");
+
+    Escrow storage currentEscrow = escrows[escrowId];
     // Check if Committee accpeted the request or not, if yes handle refund and update escrow price
     // if not mark escrow as Done
     if (accepted) {
-      uint refundAmount = escrows[escrowId].price - newAmount;
+      uint refundAmount = currentEscrow.money - newAmount;
       // Update the escrow with the new amount
-      escrows[escrowId].price = newAmount;
+
       // The differing ammount will be sent back to the buyer
       if (refundAmount > 0) {
         // TO-DO: Hier schauen, wie genau die Zahlung abläuft
-        //payable(escrows[escrowId].buyer).transfer(refundAmount);
+        payable(currentEscrow.buyer).transfer(refundAmount);
         refundAmount = 0;
       }
+      currentEscrow.money = newAmount;
     }
     // TO-DO: Prüfen ob escrowDone schon aufgerufen werden kann
-    // escrowDone(escrows[escrowId]);
+    escrowDone(currentEscrow);
   }
 
   function escrowDone(Escrow storage escrow) internal {
-    payable(escrow.buyer).transfer(escrow.money);
+    payable(escrow.seller).transfer(escrow.money);
     escrow.money = 0;
     escrow.isDone = true;
     chatManager.closeChannel(escrow.jobId);
