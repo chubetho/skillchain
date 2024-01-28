@@ -15,6 +15,7 @@ contract ChatManager {
   FreelancerMarketplace freelancerMarketplace;
   JobManager jobManager;
   UserManager userManager;
+  CommitteeManager committeeManager;
   uint channelCount;
 
   struct Channel {
@@ -73,6 +74,14 @@ contract ChatManager {
     userManager = UserManager(_address);
   }
 
+  function setCommitteeManager(address _address) external {
+    require(
+      freelancerMarketplace.onlyAdmin(),
+      "Only the Admin can add Managers"
+    );
+    committeeManager = CommitteeManager(_address);
+  }
+
   //*********************************************************************
   //*********************************************************************
   //                        Getter Functions
@@ -80,7 +89,9 @@ contract ChatManager {
   //*********************************************************************
 
   // Retrieve details of a specific channel
-  function getChannel(uint _escrowId) public view returns (Channel memory) {
+  function getChannel(
+    uint _escrowId
+  ) public view onlyAuthorized(_escrowId) returns (Channel memory) {
     return channels[_escrowId];
   }
 
@@ -88,7 +99,7 @@ contract ChatManager {
   function getMessage(
     uint _escrowId,
     uint _messageId
-  ) public view returns (Message memory) {
+  ) public view onlyAuthorized(_escrowId) returns (Message memory) {
     // Get channel by escrowId
     Channel storage channel = channels[_escrowId];
 
@@ -101,7 +112,7 @@ contract ChatManager {
   // Retrieve all messages in a channel
   function getAllChannelMessages(
     uint _escrowId
-  ) public view returns (Message[] memory) {
+  ) public view onlyAuthorized(_escrowId) returns (Message[] memory) {
     uint count = channels[_escrowId].messageCount;
     Message[] memory allMessages = new Message[](count);
 
@@ -119,7 +130,7 @@ contract ChatManager {
   //*********************************************************************
 
   // Open a new communication channel for a given escrow
-  function openChannel(uint _escrowId) public {
+  function openChannel(uint _escrowId) public onlyEscrowEntity(_escrowId) {
     // Destruct escrow from getEscrow from EscrowManager to get the addresses of buyer and seller
     (, , address buyer, address seller, , , , ) = escrowManager.getEscrow(
       _escrowId
@@ -138,7 +149,7 @@ contract ChatManager {
   }
 
   // Close an existing communication channel for a given escrow
-  function closeChannel(uint _escrowId) public {
+  function closeChannel(uint _escrowId) public onlyAuthorized(_escrowId) {
     // Fetch the corresponding channel
     Channel storage channel = channels[_escrowId];
 
@@ -159,7 +170,10 @@ contract ChatManager {
   //*********************************************************************
 
   // Send a message in the channel (channelId == escrowId)
-  function sendMessage(uint _escrowId, string memory _content) public {
+  function sendMessage(
+    uint _escrowId,
+    string memory _content
+  ) public onlyAuthorized(_escrowId) {
     // Get channel by escrowId
     Channel storage channel = channels[_escrowId];
 
@@ -190,7 +204,7 @@ contract ChatManager {
   //*********************************************************************
 
   // Modifier to check if the caller is one of the EscrowParty
-  modifier isEscrowEntity(uint256 _escrowId) {
+  modifier onlyEscrowEntity(uint _escrowId) {
     (, , address _buyer, address _seller, , , , ) = escrowManager.getEscrow(
       _escrowId
     );
@@ -198,6 +212,38 @@ contract ChatManager {
       msg.sender == _buyer || msg.sender == _seller,
       "you are not party of this"
     );
+    _;
+  }
+
+  modifier onlyAuthorized(uint _escrowId) {
+    bool isCommitteeMember = false;
+    bool isEscrowEntity = false;
+
+    // Get the seller and buyer address from escrow
+    (, , address _buyer, address _seller, , , , ) = escrowManager.getEscrow(
+      _escrowId
+    );
+
+    if (msg.sender == _buyer || msg.sender == _seller) {
+      isEscrowEntity = true;
+    } else {
+      // Get the committee member addresses
+      address[] memory committeeMemberArray = committeeManager
+        .getCommitteeMemberArray(_escrowId);
+      for (uint i = 0; i < committeeMemberArray.length; i++) {
+        if (committeeMemberArray[i] == msg.sender) {
+          isCommitteeMember = true;
+          break;
+        }
+      }
+    }
+
+    require(
+      isCommitteeMember || isEscrowEntity,
+      "you are not a part of the committee or party of this escrow"
+    );
+
+    // Continue with the execution of the function
     _;
   }
 }

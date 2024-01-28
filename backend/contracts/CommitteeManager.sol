@@ -97,6 +97,10 @@ contract CommitteeManager {
     uint escrowId,
     address[] calldata selectedMembers
   ) external {
+    require(
+      freelancerMarketplace.onlyAdmin(),
+      "Only the Admin can set committee members. msg.sender has to be the admin"
+    );
     // Makes sure that the ammount of user addresses is equal the ammount of required committee members
     require(
       selectedMembers.length ==
@@ -302,7 +306,7 @@ contract CommitteeManager {
     uint escrowId,
     uint newAmount,
     string calldata _reason
-  ) external isEscrowEntity(escrowId) {
+  ) external onlyEscrowEntity(escrowId) {
     require(newAmount > 0, "New amount must be greater than 0");
     // Überprüfen, ob bereits eine Review-Anfrage für diese Escrow-ID geöffnet wurde
     require(
@@ -336,7 +340,7 @@ contract CommitteeManager {
   function voteReviewRequest(
     uint escrowId,
     bool _vote
-  ) external onlyCommitteeMember(escrowId) onlyValidCommitteeMember(escrowId) {
+  ) external onlyCommitteeMemberOfRequest(escrowId) {
     ReviewRequest storage request = reviewRequests[escrowId];
     require(!request.isClosed, "Review request is closed");
 
@@ -484,28 +488,8 @@ contract CommitteeManager {
   //*********************************************************************
   //*********************************************************************
 
-  // Modifier to ensure that only committee members can perform a specific action
-  modifier onlyCommitteeMember(uint escrowId) {
-    // Check if the sender's address matches any committee member's address
-    bool isCommitteeMember = false;
-    for (uint i = 0; i < allCommitteeMemberCount; i++) {
-      if (committeeMembers[i].committeeMemberAddress == msg.sender) {
-        isCommitteeMember = true;
-        break;
-      }
-    }
-
-    require(
-      isCommitteeMember,
-      "Only committee members can perform this action"
-    );
-
-    // Continue with the execution of the function
-    _;
-  }
-
   // Make sure sender is part of the committee for this escrow
-  modifier onlyValidCommitteeMember(uint escrowId) {
+  modifier onlyCommitteeMemberOfRequest(uint escrowId) {
     bool isCommitteeMember = false;
     for (uint i = 0; i < committeeVotes[escrowId].length; i++) {
       if (committeeVotes[escrowId][i].voterAddress == msg.sender) {
@@ -524,7 +508,7 @@ contract CommitteeManager {
   }
 
   // Modifier to ensure that the sender is a party to the specified escrow
-  modifier isEscrowEntity(uint256 _escrowId) {
+  modifier onlyEscrowEntity(uint _escrowId) {
     // Get buyer and seller addresses from the EscrowManager based on the escrowId
     (, , address _buyer, address _seller, , , , ) = escrowManager.getEscrow(
       _escrowId
@@ -533,6 +517,34 @@ contract CommitteeManager {
     require(
       msg.sender == _buyer || msg.sender == _seller,
       "You are not a party to this escrow"
+    );
+
+    // Continue with the execution of the function
+    _;
+  }
+
+  modifier onlyAuthorized(uint _escrowId) {
+    bool isCommitteeMember = false;
+    bool isEscrowEntity = false;
+
+    (, , address _buyer, address _seller, , , , ) = escrowManager.getEscrow(
+      _escrowId
+    );
+
+    if (msg.sender == _buyer || msg.sender == _seller) {
+      isEscrowEntity = true;
+    } else {
+      for (uint i = 0; i < committeeVotes[_escrowId].length; i++) {
+        if (committeeVotes[_escrowId][i].voterAddress == msg.sender) {
+          isCommitteeMember = true;
+          break;
+        }
+      }
+    }
+
+    require(
+      isCommitteeMember || isEscrowEntity,
+      "you are not a part of the committee or party of this escrow"
     );
 
     // Continue with the execution of the function

@@ -184,7 +184,7 @@ contract ReviewManager {
     uint _escrowId,
     uint _rating,
     string calldata _reviewComment
-  ) external isEscrowEntity(_escrowId) {
+  ) external onlyEscrowEntity(_escrowId) {
     // Check if msg.sender has not already reviewed for the given escrowId
     require(
       !hasReviewed[_escrowId][msg.sender],
@@ -277,7 +277,7 @@ contract ReviewManager {
     _;
   }
 
-  modifier isEscrowEntity(uint256 _escrowId) {
+  modifier onlyEscrowEntity(uint _escrowId) {
     (, , address _buyer, address _seller, , , , ) = escrowManager.getEscrow(
       _escrowId
     );
