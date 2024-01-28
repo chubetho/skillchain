@@ -317,6 +317,10 @@ contract EscrowManager {
     currentEscrow.money = 0;
     currentEscrow.started = false;
     currentEscrow.isDone = false;
+
+    // Close ChatChannel
+    chatManager.closeChannel(escrowId);
+    chatManager.sendMessage(escrowId, "This escrow was canceled");
   }
 
   //*********************************************************************

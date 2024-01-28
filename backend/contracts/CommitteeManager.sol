@@ -55,6 +55,12 @@ contract CommitteeManager {
   // key = escrowId, value = array of CommitteeVotes
   mapping(uint => CommitteeVote[]) public committeeVotes;
 
+  // Event definition
+  event CommitteeReviewOpened(
+    uint indexed escrowId,
+    uint requiredCommitteeMembers
+  );
+
   // Constructor to link to FreelancerMarketplace Address
   constructor(address _freelancerMarketplaceAddress) {
     freelancerMarketplace = FreelancerMarketplace(
@@ -84,6 +90,29 @@ contract CommitteeManager {
       "Only the Admin can add Managers"
     );
     userManager = UserManager(_address);
+  }
+
+  // Function that allows Frontend to set random committee members
+  function setCommitteeMembers(
+    uint escrowId,
+    address[] calldata selectedMembers
+  ) external {
+    // Makes sure that the ammount of user addresses is equal the ammount of required committee members
+    require(
+      selectedMembers.length ==
+        reviewRequests[escrowId].requiredCommitteeMembers,
+      "Invalid number of committee members selected"
+    );
+
+    // Add the new committee member to the array of committee cotes for this escrow
+    for (uint i = 0; i < selectedMembers.length; i++) {
+      // Add the address and initialize his/her vote as Pending
+      CommitteeVote memory newCommitteeVote = CommitteeVote({
+        voterAddress: selectedMembers[i],
+        vote: MemberVote.Pending
+      });
+      committeeVotes[escrowId].push(newCommitteeVote);
+    }
   }
 
   //*********************************************************************
@@ -191,6 +220,35 @@ contract CommitteeManager {
     revert("Member not found in the committee");
   }
 
+  // Function that returns all available committee members as an array
+  function getAllAvailableCommitteeMembers()
+    external
+    view
+    returns (address[] memory)
+  {
+    // Initialize a temporary array to store available committee members
+    address[] memory availableMembers = new address[](
+      availableCommitteeMemberCount
+    );
+
+    // Counter for available committee members
+    uint availableIndex = 0;
+
+    // Iterate through the mapping committeeMembers
+    for (uint i = 0; i < allCommitteeMemberCount; i++) {
+      // Check if the committee member is available
+      if (committeeMembers[i].availability == MemberAvailability.Available) {
+        // Add the available committee member to the array
+        availableMembers[availableIndex] = committeeMembers[i]
+          .committeeMemberAddress;
+        availableIndex++;
+      }
+    }
+
+    // Return the array of available committee members
+    return availableMembers;
+  }
+
   //*********************************************************************
   //*********************************************************************
   //                        User Functions
@@ -270,19 +328,8 @@ contract CommitteeManager {
     // Permanently store the new review request in the mapping, with the escrowId as key
     reviewRequests[escrowId] = newRequest;
 
-    // Select random committee members by calling determineRandomComitteeMembers, store their addresses temporary
-    // and initialize their votes as false = "No, I do not support review request"
-    CommitteeMember[]
-      memory newCommitteeMembers = determineRandomCommitteeMembers(
-        requiredCommitteeMembers
-      );
-    for (uint256 i = 0; i < newCommitteeMembers.length; i++) {
-      CommitteeVote memory newCommitteeVote = CommitteeVote({
-        voterAddress: newCommitteeMembers[i].committeeMemberAddress,
-        vote: MemberVote.Pending
-      });
-      committeeVotes[escrowId].push(newCommitteeVote);
-    }
+    // Trigger the event to notify the frontend
+    emit CommitteeReviewOpened(escrowId, requiredCommitteeMembers);
   }
 
   // Committee Members can Vote true = Yes/ false = No on the Review request
@@ -335,52 +382,6 @@ contract CommitteeManager {
     } else {
       return 9;
     }
-  }
-
-  // TO-DO: Change logic to get Random members and make sure that escrow parties are not assigned to committee
-  function determineRandomCommitteeMembers(
-    uint _requiredCommitteeMembers
-  ) internal returns (CommitteeMember[] memory) {
-    // Ensure that there are enough available committee members in the pool
-    require(
-      _requiredCommitteeMembers <= availableCommitteeMemberCount,
-      "Not enough available members in committee pool"
-    );
-
-    // Initialize an array to store the selected committee members
-    CommitteeMember[] memory selectedMembers = new CommitteeMember[](
-      _requiredCommitteeMembers
-    );
-
-    // Initialize a variable to keep track of the remaining committee members to select
-    uint remaining = _requiredCommitteeMembers;
-
-    // Iterate through the list of committee members
-    for (uint i = 0; i < allCommitteeMemberCount; i++) {
-      // Get the committee member at the current index
-      CommitteeMember storage currentMember = committeeMembers[i];
-
-      // Check if the current member is available
-      if (currentMember.availability == MemberAvailability.Available) {
-        // Add the current member to the array
-        selectedMembers[_requiredCommitteeMembers - remaining] = currentMember;
-
-        // Mark the current member as unavailable
-        currentMember.availability = MemberAvailability.Unavailable;
-
-        // Update the available committee member count and decrement the remaining count
-        availableCommitteeMemberCount--;
-        remaining--;
-
-        // Check if the required number of committee members has been selected
-        if (remaining == 0) {
-          break;
-        }
-      }
-    }
-
-    // Return the array of selected committee members
-    return selectedMembers;
   }
 
   // Function to count votes for a review request
