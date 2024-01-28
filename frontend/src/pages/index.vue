@@ -24,17 +24,19 @@ const data = computed(() => {
   return f.toSorted((a, b) => sortOpt.value === 'lth' ? a.price - b.price : b.price - a.price)
 })
 
-onMounted(() => {
-  fetchAllJobs().then((res) => {
-    jobs.value = res
-  })
-})
+onMounted(fetch)
 
 const isSheetOpen = ref(false)
 const currentJob = shallowRef<Job>()
 function handleOpenSheet(j: Job) {
   currentJob.value = j
   isSheetOpen.value = true
+}
+
+function fetch() {
+  fetchAllJobs().then((res) => {
+    jobs.value = res
+  })
 }
 </script>
 
@@ -78,6 +80,7 @@ function handleOpenSheet(j: Job) {
 
       <ScrollArea class="h-[800px]">
         <div class="grid grid-cols-3 gap-6">
+          <JobCardCreate @created="fetch" />
           <template v-if="jobs.length">
             <JobCard v-for="(job, i) in data" :key="i" v-bind="job" @click="handleOpenSheet(job)" />
           </template>
@@ -90,9 +93,7 @@ function handleOpenSheet(j: Job) {
     </div>
 
     <template v-if="currentJob">
-      <KeepAlive>
-        <JobSheet v-model:open="isSheetOpen" :job="currentJob" />
-      </KeepAlive>
+      <JobSheet v-model:open="isSheetOpen" :job="currentJob" @deleted="fetch" />
     </template>
   </div>
 </template>

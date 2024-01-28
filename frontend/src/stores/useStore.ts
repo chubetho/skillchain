@@ -1,5 +1,5 @@
-import type { ChatManager, EscrowManager, FreelancerMarketplace, JobManager, ReviewManager, UserManager } from '@/typechain'
-import { ChatManager__factory, EscrowManager__factory, FreelancerMarketplace__factory, JobManager__factory, ReviewManager__factory, UserManager__factory } from '@/typechain/factories'
+import type { ChatManager, CommitteeManager, EscrowManager, FreelancerMarketplace, JobManager, ReviewManager, UserManager } from '@/typechain'
+import { ChatManager__factory, CommitteeManager__factory, EscrowManager__factory, FreelancerMarketplace__factory, JobManager__factory, ReviewManager__factory, UserManager__factory } from '@/typechain/factories'
 import type { User } from '@/types'
 import { shortenAddr } from '@/utils'
 import type { JsonRpcSigner } from 'ethers'
@@ -90,15 +90,25 @@ export const useStore = defineStore('metamask', () => {
     return ReviewManager__factory.connect(address, await getSigner())
   }
 
+  let committeeFactory: CommitteeManager
+  async function getCommitteeFactory() {
+    if (committeeFactory)
+      return committeeFactory
+    const address = import.meta.env.VITE_COMMITTEE_ADDRESS
+    return CommitteeManager__factory.connect(address, await getSigner())
+  }
+
   return {
     connect,
     getSigner,
+
     getMarketFactory,
     getJobFactory,
     getUserFactory,
     getEscrowFactory,
     getChatFactory,
     getReviewFactory,
+    getCommitteeFactory,
 
     isConnected,
     address,

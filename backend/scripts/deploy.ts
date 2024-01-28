@@ -1,3 +1,4 @@
+/* eslint-disable unused-imports/no-unused-vars */
 import type { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers'
 import { ethers } from 'hardhat'
 import { exit } from 'node:process'
@@ -12,40 +13,54 @@ async function main() {
   const market = await ethers.deployContract('FreelancerMarketplace', [], { signer: admin })
   await market.waitForDeployment()
 
-  const job = await ethers.deployContract('JobManager', [market.target], { signer: admin })
-  const user = await ethers.deployContract('UserManager', [market.target], { signer: admin })
-  const escrow = await ethers.deployContract('EscrowManager', [market.target], { signer: admin })
   const chat = await ethers.deployContract('ChatManager', [market.target], { signer: admin })
+  const committee = await ethers.deployContract('CommitteeManager', [market.target], { signer: admin })
+  const escrow = await ethers.deployContract('EscrowManager', [market.target], { signer: admin })
+  const job = await ethers.deployContract('JobManager', [market.target], { signer: admin })
   const review = await ethers.deployContract('ReviewManager', [market.target], { signer: admin })
+  const user = await ethers.deployContract('UserManager', [market.target], { signer: admin })
 
   if (
     market.target !== '0x73511669fd4dE447feD18BB79bAFeAC93aB7F31f'
-    || job.target !== '0xB581C9264f59BF0289fA76D61B2D0746dCE3C30D'
-    || user.target !== '0xC469e7aE4aD962c30c7111dc580B4adbc7E914DD'
+    || chat.target !== '0xB581C9264f59BF0289fA76D61B2D0746dCE3C30D'
+    || committee.target !== '0xC469e7aE4aD962c30c7111dc580B4adbc7E914DD'
     || escrow.target !== '0x43ca3D2C94be00692D207C6A1e60D8B325c6f12f'
-    || chat.target !== '0xb09da8a5B236fE0295A345035287e80bb0008290'
+    || job.target !== '0xb09da8a5B236fE0295A345035287e80bb0008290'
     || review.target !== '0x5095d3313C76E8d29163e40a0223A5816a8037D8'
+    || user.target !== '0x391342f5acAcaaC9DE1dC4eC3E03f2678f7c78F1'
   )
     throw new Error ('Wrong deployed addresses! Restart node and try again')
 
   await Promise.all([
-    job.waitForDeployment(),
-    user.waitForDeployment(),
-    escrow.waitForDeployment(),
     chat.waitForDeployment(),
+    committee.waitForDeployment(),
+    escrow.waitForDeployment(),
+    job.waitForDeployment(),
     review.waitForDeployment(),
+    user.waitForDeployment(),
   ])
 
   await Promise.all([
-    job.setUserManager(user.target),
-    job.setEscrowManager(escrow.target),
-
-    escrow.setUserManager(user.target),
-    escrow.setJobManager(job.target),
-
     chat.setJobManager(job.target),
     chat.setEscrowManager(escrow.target),
     chat.setUserManager(user.target),
+
+    committee.setUserManager(user.target),
+    committee.setEscrowManager(escrow.target),
+
+    escrow.setJobManager(job.target),
+    escrow.setUserManager(user.target),
+    escrow.setCommitteeManager(committee.target),
+    escrow.setChatManager(chat.target),
+
+    job.setEscrowManager(escrow.target),
+    job.setUserManager(user.target),
+
+    review.setEscrowManager(escrow.target),
+    review.setJobManager(job.target),
+    review.setUserManager(user.target),
+
+    user.setCommitteeManager(committee.target),
   ])
 
   const isDev = true
@@ -63,6 +78,14 @@ async function main() {
     await user.registerUser('admin')
     const account0 = await useAccount(signers[0], 'acc0')
     const account1 = await useAccount(signers[1], 'acc1')
+    const account2 = await useAccount(signers[2], 'acc2')
+    const account3 = await useAccount(signers[3], 'acc3')
+    const account4 = await useAccount(signers[4], 'acc4')
+    const account5 = await useAccount(signers[5], 'acc5')
+    const account6 = await useAccount(signers[6], 'acc6')
+    const account7 = await useAccount(signers[7], 'acc7')
+    const account8 = await useAccount(signers[8], 'acc8')
+    const account9 = await useAccount(signers[9], 'acc9')
 
     for (const { title, description, price, tags } of jobs.slice(0, 5))
       await account0.job.addJob(title, description, price, tags)

@@ -7,6 +7,7 @@ interface CustomRequest {
   buyer: string
   message: string
   accepted: boolean
+  escrowId: number
 }
 
 const store = useStore()
@@ -37,6 +38,7 @@ async function fetch() {
       buyer: y[2],
       message: y[3],
       accepted: y[4],
+      escrowId: Number(y[5]),
     }))
 
     jobs[i].requests.push(...js)

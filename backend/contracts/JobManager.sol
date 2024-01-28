@@ -19,6 +19,7 @@ contract JobManager {
     address buyer;
     string comment;
     bool accepted;
+    int256 escrowId;
   }
 
   struct Job {
@@ -263,6 +264,7 @@ contract JobManager {
     request.comment = comment;
     request.buyRequestId = currentJob.buyRequestCount;
     request.accepted = false;
+    request.escrowId = -1;
 
     currentJob.buyRequestCount++;
   }
@@ -274,6 +276,7 @@ contract JobManager {
     Job storage currentJob = jobs[jobId];
     BuyRequest storage currentBuyRequest = currentJob.buyRequests[buyRequestId];
     currentBuyRequest.accepted = true;
+    currentBuyRequest.escrowId = int256(escrowManager.getEscrowCount());
 
     escrowManager.createEscrow(
       currentBuyRequest.buyer,

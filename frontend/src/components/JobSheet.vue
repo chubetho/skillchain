@@ -2,9 +2,14 @@
 import { fetchUser } from '@/lib/fetch'
 import type { Job, User } from '@/types'
 import { compareAddress } from '@/utils'
+import { Gavel } from 'lucide-vue-next'
 
 const props = defineProps<{
   job: Job
+}>()
+
+const emits = defineEmits<{
+  (e: 'deleted'): void
 }>()
 
 const open = defineModel<boolean>('open', { default: false })
@@ -12,32 +17,12 @@ const open = defineModel<boolean>('open', { default: false })
 const store = useStore()
 const jobFactory = await store.getJobFactory()
 const seller = shallowRef<User>()
-const otherJobs = shallowRef<Job[]>([])
+watch(() => props.job.id, async () => {
+  if (seller.value?.owner === props.job.owner)
+    return
 
-watch(
-  () => props.job.owner
-  , () => {
-    seller.value = undefined
-    otherJobs.value = []
-
-    fetchUser(props.job.owner).then((u) => {
-      seller.value = u
-    })
-
-    jobFactory.getAllJobsOfUser(props.job.owner).then((res) => {
-      otherJobs.value = res.map(x => ({
-        owner: x[0],
-        id: Number(x[1]),
-        title: x[2],
-        description: x[3],
-        price: Number(x[4]),
-        inProcess: x[5],
-        tags: x[6],
-      })).filter(x => x.id !== props.job.id)
-    })
-  },
-  { immediate: true },
-)
+  seller.value = await fetchUser(props.job.owner)
+}, { immediate: true })
 
 const message = ref('')
 const error = ref('')
@@ -56,7 +41,12 @@ async function handleSendRequest() {
 }
 
 async function handleDeleteJob() {
-  await jobFactory.deleteJob(props.job.id)
+  const response = await jobFactory.deleteJob(props.job.id)
+  const receipt = await response.wait()
+  if (receipt?.status === 1) {
+    open.value = false
+    emits('deleted')
+  }
 }
 </script>
 
@@ -81,6 +71,7 @@ async function handleDeleteJob() {
       <JobPrice>
         {{ job.price }}
       </JobPrice>
+
       <template v-if="!compareAddress(job.owner, store.address)">
         <form class="mt-3 space-y-3" @submit.prevent="handleSendRequest">
           <div class="space-y-1">
@@ -110,58 +101,37 @@ async function handleDeleteJob() {
             info
           </h3>
 
-          <div class="grid grid-cols-3 gap-1">
-            <div>username</div>
+          <div class="grid grid-cols-3 gap-2">
+            <p class="text-muted-foreground">
+              username
+            </p>
             <div class="col-span-2">
               <Badge variant="outline">
                 {{ seller.userName }}
               </Badge>
             </div>
-            <div>address</div>
+
+            <p class="text-muted-foreground">
+              address
+            </p>
             <div class="col-span-2">
               <Badge variant="outline">
                 {{ seller.owner }}
               </Badge>
             </div>
-            <div>is reviewer</div>
-            <div class="col-span-2">
-              <Badge variant="outline">
-                {{ seller.isJudge ? 'yes' : 'no' }}
-              </Badge>
-            </div>
+
+            <template v-if="seller.isJudge">
+              <p class="text-muted-foreground">
+                badge
+              </p>
+              <div class="col-span-2">
+                <Badge variant="outline">
+                  <Gavel :size="16" />
+                </Badge>
+              </div>
+            </template>
           </div>
         </div>
-
-        <template v-if="otherJobs.length">
-          <div class="space-y-5 mt-10">
-            <h3 class="text-xl">
-              more from @{{ seller.userName }}
-            </h3>
-
-            <ScrollArea class="h-[400px]">
-              <ul class="flex flex-col gap-3">
-                <li v-for="(j, i) in otherJobs" :key="i" class="px-3 py-2 rounded-md border">
-                  <div class="space-y-2">
-                    <div class="space-y-2">
-                      <p>{{ j.title }}</p>
-                      <ul class="-ml-2 flex gap-2">
-                        <li v-for="(t, ti) in j.tags" :key="ti">
-                          <Badge variant="outline">
-                            {{ t }}
-                          </Badge>
-                        </li>
-                      </ul>
-                    </div>
-
-                    <JobPrice>
-                      {{ j.price }}
-                    </JobPrice>
-                  </div>
-                </li>
-              </ul>
-            </ScrollArea>
-          </div>
-        </template>
       </div>
     </SheetContent>
   </Sheet>

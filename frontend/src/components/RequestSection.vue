@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { JobWithRequests } from '@/pages/requests.vue'
-import { ChevronDown } from 'lucide-vue-next'
+import { ChevronDown, CornerDownRight } from 'lucide-vue-next'
 
 defineProps<{
   jobs: JobWithRequests[]
@@ -10,7 +10,7 @@ const emits = defineEmits<{
   (e: 'accept', jobId: number, requestId: number): void
 }>()
 
-const jobId = ref<number>(-1)
+const jobId = ref(-1)
 </script>
 
 <template>
@@ -74,7 +74,12 @@ const jobId = ref<number>(-1)
                       </div>
                     </div>
 
-                    <Button :disabled="r.accepted" @click="emits('accept', jobId, r.id)">
+                    <RouterLink v-if="r.accepted" :to="{ path: '/chats', query: { id: r.escrowId } }">
+                      <Button>
+                        to chat
+                      </Button>
+                    </RouterLink>
+                    <Button v-else @click="emits('accept', jobId, r.id)">
                       accept
                     </Button>
                   </div>

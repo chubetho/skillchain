@@ -44,6 +44,23 @@ export interface Message {
   content: string
 }
 
+export interface Review {
+  timestamp: number
+  rating: number
+  reviewingAddress: string
+  beingReviewedAddress: string
+  reviewComment: string
+  relevantEscrowId: number
+  responded: boolean
+  id: number
+}
+
+export interface ReviewResponse {
+  timestamp: number
+  responder: string
+  responseComment: string
+}
+
 declare global {
   interface Window {
     ethereum: Eip1193Provider &

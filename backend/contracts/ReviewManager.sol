@@ -23,6 +23,7 @@ contract ReviewManager {
     string reviewComment;
     uint relevantEscrowId;
     bool responded; // Indicates if a response has been added
+    uint id;
   }
 
   struct Response {
@@ -95,7 +96,8 @@ contract ReviewManager {
       address beingReviewedAddress,
       string memory reviewComment,
       uint relevantEscrowId,
-      bool responded
+      bool responded,
+      uint id
     )
   {
     Review storage review = reviews[_reviewId];
@@ -106,7 +108,8 @@ contract ReviewManager {
       review.beingReviewedAddress,
       review.reviewComment,
       review.relevantEscrowId,
-      review.responded
+      review.responded,
+      review.id
     );
   }
 
@@ -173,6 +176,41 @@ contract ReviewManager {
     return userReviews;
   }
 
+  function getReviewByEscrowId(
+    uint _escrowId
+  )
+    external
+    view
+    returns (
+      uint timestamp,
+      uint rating,
+      address reviewingAddress,
+      address beingReviewedAddress,
+      string memory reviewComment,
+      uint relevantEscrowId,
+      bool responded,
+      uint id
+    )
+  {
+    for (uint i = 0; i < reviewCount; i++) {
+      if (reviews[i].relevantEscrowId == _escrowId) {
+        Review storage review = reviews[i];
+        return (
+          review.timestamp,
+          review.rating,
+          review.reviewingAddress,
+          review.beingReviewedAddress,
+          review.reviewComment,
+          review.relevantEscrowId,
+          review.responded,
+          review.id
+        );
+      }
+    }
+
+    revert("Review not found for the given escrowId");
+  }
+
   //*********************************************************************
   //*********************************************************************
   //                        Create Functions
@@ -206,13 +244,14 @@ contract ReviewManager {
 
     // Create a new Review object
     Review memory newReview = Review({
-      timestamp: block.timestamp,
+      timestamp: block.timestamp * 1000,
       rating: _rating,
       reviewingAddress: _reviewingAddress,
       beingReviewedAddress: _beingReviewedAddress,
       reviewComment: _reviewComment,
       relevantEscrowId: _escrowId,
-      responded: false
+      responded: false,
+      id: reviewCount
     });
 
     // Add the new review to the reviews mapping
@@ -250,7 +289,7 @@ contract ReviewManager {
 
     // Create a new Response object
     Response memory newResponse = Response({
-      timestamp: block.timestamp,
+      timestamp: block.timestamp * 1000,
       responder: msg.sender,
       responseComment: _responseComment
     });
