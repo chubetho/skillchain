@@ -34,8 +34,7 @@ jobs:
     needs: check
 
     permissions:
-      pages: write
-      id-token: write
+      contents: write
 
     runs-on: ubuntu-latest
 
