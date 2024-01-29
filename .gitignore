@@ -6,4 +6,6 @@ backend/cache
 backend/artifacts
 
 frontend/src/typechain
+
 docs/.vitepress/cache
+docs/.vitepress/dist

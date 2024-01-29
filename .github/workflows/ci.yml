@@ -34,3 +34,22 @@ jobs:
 
       - name: Build FE
         run: pnpm run build:fe
+
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: Sauloxd/review-apps@v2.0.0
+        with:
+          branch: gh-pages
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          apps: |
+            {
+              "app":{
+                "build": "pnpm run build:fe",
+                "dist": "frontend/dist"
+              },
+              "docs":{
+                "build": "pnpm run build:docs",
+                "dist": "docs/.vitepress/dist"
+              }
+            }

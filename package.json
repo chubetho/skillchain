@@ -10,6 +10,7 @@
     "deploy:local": "pnpm --filter=./backend deploy:local",
     "build:be": "pnpm --filter=./backend build",
     "docs:dev": "pnpm --filter=./docs dev",
+    "docs:build": "pnpm --filter=./docs build",
     "build:gh": "pnpm --filter=./frontend build --base=/skillchain/",
     "deploy:gh": "git subtree split --prefix frontend/dist -b gh-pages && git push origin gh-pages:gh-pages --force && git branch -D gh-pages",
     "postinstall": "npx simple-git-hooks"
