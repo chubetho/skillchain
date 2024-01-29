@@ -1,1 +1,0 @@
-import{d as t,a as r,w as n,m as l,u as e,o as c,r as p,h as f,ak as d}from"./index-NT2W6lgv.js";const _=t({__name:"Label",props:{for:{},asChild:{type:Boolean},as:{},class:{}},setup(a){const s=a;return(o,m)=>(c(),r(e(d),l(s,{class:e(f)("block font-medium text-foreground text-left",s.class)}),{default:n(()=>[p(o.$slots,"default")]),_:3},16,["class"]))}});export{_};

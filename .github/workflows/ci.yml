@@ -12,6 +12,7 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
       - uses: pnpm/action-setup@v2
@@ -30,8 +31,14 @@ jobs:
         run: npx eslint .
 
   deploy:
-    permissions: write-all
+    needs: check
+
+    permissions:
+      pages: write
+      id-token: write
+
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
       - uses: pnpm/action-setup@v2
@@ -46,18 +53,10 @@ jobs:
       - name: Build BE
         run: pnpm run be:build
 
-      - uses: Sauloxd/review-apps@v2.0.0
+      - name: Build FE
+        run: pnpm run fe:build
+
+      - uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          apps: |
-            {
-              "app":{
-                "build": "pnpm run fe:build",
-                "dist": "frontend/dist"
-              },
-              "docs":{
-                "build": "pnpm run docs:build",
-                "dist": "docs/.vitepress/dist"
-              }
-            }
+          folder: frontend/dist
