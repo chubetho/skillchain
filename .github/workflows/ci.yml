@@ -29,12 +29,6 @@ jobs:
       - name: Lint FE
         run: npx eslint .
 
-      - name: Build BE
-        run: pnpm run build:be
-
-      - name: Build FE
-        run: pnpm run build:fe
-
   deploy:
     runs-on: ubuntu-latest
     steps:
@@ -49,7 +43,7 @@ jobs:
         run: pnpm install
 
       - name: Build BE
-        run: pnpm run build:be
+        run: pnpm run be:build
 
       - uses: Sauloxd/review-apps@v2.0.0
         with:
@@ -58,11 +52,11 @@ jobs:
           apps: |
             {
               "app":{
-                "build": "pnpm run build:fe",
+                "build": "pnpm run fe:build",
                 "dist": "frontend/dist"
               },
               "docs":{
-                "build": "pnpm run build:docs",
+                "build": "pnpm run docs:build",
                 "dist": "docs/.vitepress/dist"
               }
             }
